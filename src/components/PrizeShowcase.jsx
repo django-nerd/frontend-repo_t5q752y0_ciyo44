@@ -9,11 +9,8 @@ const PRIZES = [
   { key: 'zonk', label: 'Zonk', symbol: '❌' },
 ]
 
-export default function PrizeShowcase() {
-  const leftGroup = PRIZES.filter(p => ['laptop','gopay50','gopay10'].includes(p.key))
-  const rightGroup = PRIZES.filter(p => ['candy','zonk'].includes(p.key))
-
-  const Card = ({ item }) => (
+function Card({ item }) {
+  return (
     <div className="relative rounded-xl overflow-hidden shadow-lg border border-white/10 bg-gradient-to-b from-red-800/60 to-red-950/70 px-3 py-2">
       <div className="flex items-center gap-3">
         <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-black/30">
@@ -27,20 +24,20 @@ export default function PrizeShowcase() {
       </div>
     </div>
   )
+}
+
+// group: 'left' | 'right'
+export default function PrizeShowcase({ group = 'left' }) {
+  const leftGroup = PRIZES.filter(p => ['laptop','gopay50','gopay10'].includes(p.key))
+  const rightGroup = PRIZES.filter(p => ['candy','zonk'].includes(p.key))
+  const data = group === 'right' ? rightGroup : leftGroup
 
   return (
-    <div className="w-44">
-      <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-3">
-          {leftGroup.map((p) => (
-            <Card key={p.key} item={p} />
-          ))}
-        </div>
-        <div className="flex flex-col gap-3">
-          {rightGroup.map((p) => (
-            <Card key={p.key} item={p} />
-          ))}
-        </div>
+    <div className="w-40 sm:w-44">
+      <div className="flex flex-col gap-3">
+        {data.map((p) => (
+          <Card key={p.key} item={p} />
+        ))}
       </div>
     </div>
   )

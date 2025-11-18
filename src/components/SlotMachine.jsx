@@ -137,9 +137,9 @@ export default function SlotMachine() {
   return (
     <div className="w-full max-w-5xl">
       <div className="flex items-start justify-center gap-4 md:gap-6">
-        {/* Show prize showcase only once on the left to avoid duplication/overlap */}
+        {/* left prizes */}
         <div className="hidden md:block w-44 shrink-0">
-          <PrizeShowcase />
+          <PrizeShowcase group="left" />
         </div>
 
         <div className="flex-1 min-w-0">
@@ -171,7 +171,10 @@ export default function SlotMachine() {
           </div>
         </div>
 
-        {/* Removed right-side duplicate showcase to prevent overlap and duplication */}
+        {/* right prizes */}
+        <div className="hidden md:block w-44 shrink-0">
+          <PrizeShowcase group="right" />
+        </div>
       </div>
 
       {/* Result Popup */}
