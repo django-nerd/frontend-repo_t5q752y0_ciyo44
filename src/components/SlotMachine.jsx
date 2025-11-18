@@ -136,26 +136,27 @@ export default function SlotMachine() {
 
   return (
     <div className="w-full max-w-5xl">
-      <div className="flex items-start justify-center gap-6">
-        <div className="hidden md:block w-40">
+      <div className="flex items-start justify-center gap-4 md:gap-6">
+        {/* Show prize showcase only once on the left to avoid duplication/overlap */}
+        <div className="hidden md:block w-44 shrink-0">
           <PrizeShowcase />
         </div>
 
-        <div className="flex-1">
-          <div className="relative rounded-3xl p-6 sm:p-8 bg-gradient-to-br from-red-700 to-red-900 border border-red-300/20 shadow-2xl">
+        <div className="flex-1 min-w-0">
+          <div className="relative rounded-3xl p-4 sm:p-6 md:p-8 bg-gradient-to-br from-red-700 to-red-900 border border-red-300/20 shadow-2xl">
             <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_50%_-10%,rgba(255,255,255,0.25),transparent_40%)]" />
             <div className="relative">
-              <div className="flex items-center justify-center gap-3 sm:gap-4">
-                <Reel targetId={targets[0]} delay={0} spinKey={spinKey} height={112} />
-                <Reel targetId={targets[1]} delay={1} spinKey={spinKey} height={112} />
-                <Reel targetId={targets[2]} delay={2} spinKey={spinKey} height={112} />
+              <div className="flex items-center justify-center gap-2 sm:gap-3 md:gap-4">
+                <Reel targetId={targets[0]} delay={0} spinKey={spinKey} height={104} />
+                <Reel targetId={targets[1]} delay={1} spinKey={spinKey} height={104} />
+                <Reel targetId={targets[2]} delay={2} spinKey={spinKey} height={104} />
               </div>
 
-              <div className="mt-6 flex items-center justify-center">
+              <div className="mt-5 sm:mt-6 flex items-center justify-center">
                 <button
                   onClick={spin}
                   disabled={spinning}
-                  className={`relative inline-flex items-center justify-center px-8 py-3 rounded-full bg-yellow-400 text-red-900 font-extrabold text-lg sm:text-xl tracking-wide transition-transform duration-200 disabled:opacity-60 disabled:cursor-not-allowed active:scale-95 ${bgGlow}`}
+                  className={`relative inline-flex items-center justify-center px-7 py-3 rounded-full bg-yellow-400 text-red-900 font-extrabold text-lg sm:text-xl tracking-wide transition-transform duration-200 disabled:opacity-60 disabled:cursor-not-allowed active:scale-95 ${bgGlow}`}
                 >
                   <span className="absolute inset-0 rounded-full bg-white/50 blur-sm"></span>
                   <span className="relative">SPIN</span>
@@ -170,9 +171,7 @@ export default function SlotMachine() {
           </div>
         </div>
 
-        <div className="hidden md:block w-40">
-          <PrizeShowcase />
-        </div>
+        {/* Removed right-side duplicate showcase to prevent overlap and duplication */}
       </div>
 
       {/* Result Popup */}
