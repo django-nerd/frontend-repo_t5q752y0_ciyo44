@@ -3,7 +3,7 @@ import React from 'react'
 // Use the same visuals as the reels (emojis)
 const PRIZES = [
   { key: 'laptop', label: 'Laptop', symbol: '💻' },
-  { key: 'gopay50', label: 'Rp. 50000', symbol: '💵' },
+  { key: 'gopay50', label: 'Rp. 50000', symbol: '💸' },
   { key: 'gopay10', label: 'Rp. 10000', symbol: '💵' },
   { key: 'candy', label: 'Permen', symbol: '🍬' },
   { key: 'zonk', label: 'Zonk', symbol: '❌' },

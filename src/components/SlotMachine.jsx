@@ -4,8 +4,8 @@ import PrizeShowcase from './PrizeShowcase'
 // Base symbols in order they appear on the reels
 const SYMBOLS = [
   { id: 'laptop', label: '💻' },
-  { id: 'gopay50', label: '💵' }, // e-money visual
-  { id: 'gopay10', label: '💵' }, // e-money visual (same image)
+  { id: 'gopay50', label: '💸' }, // distinct e-money visual for 50k
+  { id: 'gopay10', label: '💵' }, // e-money visual for 10k
   { id: 'candy', label: '🍬' },
   { id: 'zonk', label: '❌' },
 ]
@@ -29,7 +29,7 @@ function labelFor(id){
   return map[id] || id
 }
 
-function Reel({ targetId, delay, spinKey, height = 112 }) {
+function Reel({ targetId, spinKey, height = 112 }) {
   // height ~ item box height in px (responsive-ish via Tailwind sizes)
   const [pos, setPos] = useState(0) // integer item index
   const [anim, setAnim] = useState('')
@@ -55,9 +55,8 @@ function Reel({ targetId, delay, spinKey, height = 112 }) {
     const baseSpins = 8 + Math.floor(Math.random() * 5) // 8-12 full cycles
     const newPos = pos + baseSpins * baseLen + (targetIndex >= 0 ? targetIndex : baseLen - 1)
 
-    // Staggered stops but max duration = 3000ms
-    // delay: 0 -> 2600ms, 1 -> 2800ms, 2 -> 3000ms
-    const duration = 2600 + delay * 200
+    // Fixed 3000ms animation duration for all reels
+    const duration = 3000
     setAnim(`transform ${duration}ms cubic-bezier(0.17, 0.84, 0.44, 1)`)
 
     // set to large translate then normalize at end
@@ -69,7 +68,7 @@ function Reel({ targetId, delay, spinKey, height = 112 }) {
       setAnim('')
       // normalize to keep number small
       setPos((p) => p % baseLen)
-    }, duration + 60)
+    }, duration + 80)
 
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -103,8 +102,6 @@ export default function SlotMachine() {
   const [resultDetail, setResultDetail] = useState('')
   const [showPopup, setShowPopup] = useState(false)
 
-  const targetRef = useRef(['zonk', 'zonk', 'zonk'])
-
   const spin = () => {
     if (spinning) return
     setSpinning(true)
@@ -113,20 +110,21 @@ export default function SlotMachine() {
     setResultDetail('')
 
     const outcome = decideResult()
-    const target = outcome === 'zonk' ? ['zonk', 'candy', 'zonk'] : [outcome, outcome, outcome]
-    targetRef.current = target
+
+    // Sync reels with outcome: all three should show the same symbol for the final state
+    const target = [outcome, outcome, outcome]
     setTargets(target)
 
     // trigger reels
     setSpinKey((k) => k + 1)
 
-    // Wait until the last reel stops (3000ms) + small buffer
-    const totalDuration = 3000 + 120
+    // Wait until animations finish (3000ms) + buffer
+    const totalDuration = 3000 + 180
     setTimeout(() => {
-      const isWin = target.every((v) => v === target[0]) && target[0] !== 'zonk'
+      const isWin = outcome !== 'zonk' // since non-zonk outcomes are jackpots
       if (isWin) {
         setResultMsg('Hoki juga lu, selamat ya.')
-        setResultDetail(`Kamu menang: ${labelFor(target[0])}`)
+        setResultDetail(`Kamu menang: ${labelFor(outcome)}`)
       } else {
         setResultMsg("You're a loser")
         setResultDetail('Coba lagi, siapa tau hoki berikutnya.')
@@ -151,9 +149,9 @@ export default function SlotMachine() {
             <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_50%_-10%,rgba(255,255,255,0.25),transparent_40%)]" />
             <div className="relative">
               <div className="flex items-center justify-center gap-2 sm:gap-3 md:gap-4">
-                <Reel targetId={targets[0]} delay={0} spinKey={spinKey} height={104} />
-                <Reel targetId={targets[1]} delay={1} spinKey={spinKey} height={104} />
-                <Reel targetId={targets[2]} delay={2} spinKey={spinKey} height={104} />
+                <Reel targetId={targets[0]} spinKey={spinKey} height={104} />
+                <Reel targetId={targets[1]} spinKey={spinKey} height={104} />
+                <Reel targetId={targets[2]} spinKey={spinKey} height={104} />
               </div>
 
               <div className="mt-5 sm:mt-6 flex items-center justify-center">
