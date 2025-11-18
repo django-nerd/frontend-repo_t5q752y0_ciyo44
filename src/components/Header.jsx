@@ -7,7 +7,7 @@ export default function Header() {
         Tes Hoki Lu Disini
       </h1>
       <p className="mt-3 text-red-100/90 text-sm sm:text-base">
-        Tekan tombol spin. Jika tiga ikon sama (dan bukan ZONK), kamu menang!
+        Tekan tombol spin.
       </p>
     </div>
   )

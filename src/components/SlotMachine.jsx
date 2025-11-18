@@ -1,178 +1,174 @@
 import React, { useMemo, useRef, useState } from 'react'
+import PrizeShowcase from './PrizeShowcase'
 
-// Symbols configuration
+// Base symbols in order they appear on the reels
 const SYMBOLS = [
-  { id: 'laptop', label: '💻', weight: 0 }, // 0% win chance
-  { id: 'gopay50', label: '💸', weight: 0 }, // 0% win chance
-  { id: 'gopay10', label: '🪙', weight: 0.5 }, // 0.5% overall when all three match
-  { id: 'candy', label: '🍬', weight: 20 }, // 20%
-  { id: 'zonk', label: '❌', weight: 79.5 }, // remaining
+  { id: 'laptop', label: '💻' },
+  { id: 'gopay50', label: '💵' }, // e-money visual
+  { id: 'gopay10', label: '💵' }, // e-money visual (same image)
+  { id: 'candy', label: '🍬' },
+  { id: 'zonk', label: '❌' },
 ]
 
-function weightedRandomSymbol() {
-  const total = SYMBOLS.reduce((sum, s) => sum + s.weight, 0)
-  let r = Math.random() * total
-  for (const s of SYMBOLS) {
-    if ((r -= s.weight) <= 0) return s
-  }
-  return SYMBOLS[SYMBOLS.length - 1]
-}
-
 function decideResult() {
-  // Determine if it is a forced win for gopay10 or candy according to chances
-  // Chances define probability of a full 3-match outcome per spin
+  // 0.5% three-of-a-kind for gopay10, 20% three-of-a-kind for candy, else zonk (no laptop/gopay50 jackpots)
   const roll = Math.random() * 100
-  if (roll < 0.5) {
-    return 'gopay10'
-  } else if (roll < 0.5 + 20) {
-    return 'candy'
-  }
+  if (roll < 0.5) return 'gopay10'
+  if (roll < 20.5) return 'candy'
   return 'zonk'
 }
 
-function getSymbolForId(id) {
-  return SYMBOLS.find((s) => s.id === id) || SYMBOLS[SYMBOLS.length - 1]
+function Reel({ targetId, delay, spinKey, height = 112 }) {
+  // height ~ item box height in px (responsive-ish via Tailwind sizes)
+  const [pos, setPos] = useState(0) // integer item index
+  const [anim, setAnim] = useState('')
+
+  const labels = useMemo(() => SYMBOLS.map((s) => s.label), [])
+  const ids = useMemo(() => SYMBOLS.map((s) => s.id), [])
+  const baseLen = ids.length
+
+  const totalRepeat = 20
+  const totalItems = baseLen * totalRepeat
+
+  const targetIndex = ids.indexOf(targetId)
+
+  // Build long list for seamless spin
+  const items = useMemo(() => {
+    const arr = []
+    for (let i = 0; i < totalRepeat; i++) arr.push(...labels)
+    return arr
+  }, [labels])
+
+  React.useEffect(() => {
+    // Trigger on each spinKey change
+    const baseSpins = 8 + Math.floor(Math.random() * 5) // 8-12 full cycles
+    const newPos = pos + baseSpins * baseLen + (targetIndex >= 0 ? targetIndex : baseLen - 1)
+
+    const duration = 1600 + delay * 400 // staggered stops
+    setAnim(`transform ${duration}ms cubic-bezier(0.17, 0.84, 0.44, 1)`)
+    // set to large translate then normalize at end
+    requestAnimationFrame(() => {
+      setPos(newPos)
+    })
+
+    const t = setTimeout(() => {
+      setAnim('')
+      // normalize to keep number small
+      setPos((p) => p % baseLen)
+    }, duration + 50)
+
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spinKey])
+
+  const translateY = -((pos % totalItems) * height)
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-red-800 to-red-950 border border-red-300/20 flex-1" style={{ height }}>
+      <div className="absolute inset-x-0 top-0 h-6 bg-gradient-to-b from-black/40 to-transparent pointer-events-none" />
+      <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+      <div
+        className="will-change-transform"
+        style={{ transform: `translateY(${translateY}px)`, transition: anim }}
+      >
+        {items.map((label, i) => (
+          <div key={i} className="flex items-center justify-center" style={{ height }}>
+            <span className="text-5xl sm:text-6xl md:text-7xl text-yellow-200 drop-shadow-[0_0_10px_rgba(255,220,100,0.5)]">{label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 export default function SlotMachine() {
   const [spinning, setSpinning] = useState(false)
-  const [message, setMessage] = useState('')
-  const [columns, setColumns] = useState([
-    { id: 'candy', label: '🍬' },
-    { id: 'zonk', label: '❌' },
-    { id: 'gopay10', label: '🪙' },
-  ])
+  const [spinKey, setSpinKey] = useState(0)
+  const [targets, setTargets] = useState(['candy', 'zonk', 'gopay10'])
+  const [resultMsg, setResultMsg] = useState('')
+  const [showPopup, setShowPopup] = useState(false)
 
   const targetRef = useRef(['zonk', 'zonk', 'zonk'])
 
   const spin = () => {
     if (spinning) return
-    setMessage('')
     setSpinning(true)
+    setShowPopup(false)
+    setResultMsg('')
 
     const outcome = decideResult()
-    // Laptop and gopay50 have 0% chance to win as 3-match
     const target = outcome === 'zonk' ? ['zonk', 'candy', 'zonk'] : [outcome, outcome, outcome]
     targetRef.current = target
+    setTargets(target)
 
-    // Animate for ~2.5s with easing, then settle to target
-    const start = performance.now()
-    const duration = 2600
+    // trigger reels
+    setSpinKey((k) => k + 1)
 
-    const tick = (now) => {
-      const t = Math.min(1, (now - start) / duration)
-      // EaseOutCubic
-      const eased = 1 - Math.pow(1 - t, 3)
-
-      // During spin, show random symbols weighted (but exclude impossible jackpots visually can appear, but final outcome enforces chance)
-      if (t < 0.85) {
-        setColumns([
-          weightedRandomSymbol(),
-          weightedRandomSymbol(),
-          weightedRandomSymbol(),
-        ])
-      } else {
-        // Interpolate to target in the last 15%
-        const step = (idx) => (eased - 0.85) / 0.15 > idx / 3
-        setColumns((prev) => prev.map((c, i) => getSymbolForId(step(i) ? target[i] : prev[i].id)))
-      }
-
-      if (t < 1) {
-        requestAnimationFrame(tick)
-      } else {
-        // Finalize
-        setColumns(target.map(getSymbolForId))
-        const isWin = target.every((v) => v === target[0]) && target[0] !== 'zonk'
-        setMessage(
-          isWin ? 'Hoki juga lu, selamat ya.' : "You're a loser"
-        )
-        setSpinning(false)
-      }
-    }
-
-    requestAnimationFrame(tick)
+    const totalDuration = 1600 + 2 * 400 + 200 // must exceed last reel
+    setTimeout(() => {
+      const isWin = target.every((v) => v === target[0]) && target[0] !== 'zonk'
+      setResultMsg(isWin ? 'Hoki juga lu, selamat ya.' : "You're a loser")
+      setShowPopup(true)
+      setSpinning(false)
+    }, totalDuration)
   }
 
-  const bgGlow = useMemo(
-    () => 'shadow-[0_0_60px_rgba(255,255,255,0.2)]',
-    []
-  )
+  const bgGlow = useMemo(() => 'shadow-[0_0_60px_rgba(255,255,255,0.2)]', [])
 
   return (
-    <div className="w-full max-w-4xl">
+    <div className="w-full max-w-5xl">
       <div className="flex items-start justify-center gap-6">
-        {/* Left prizes */}
-        <div className="hidden md:block">
-          <div className="grid grid-cols-1 gap-4 w-40">
-            <div className="rounded-xl overflow-hidden border border-white/10">
-              <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=800&auto=format&fit=crop" className="h-28 w-full object-cover" />
-              <div className="bg-black/60 text-white text-xs p-2">Laptop (0%)</div>
-            </div>
-            <div className="rounded-xl overflow-hidden border border-white/10">
-              <img src="https://images.unsplash.com/photo-1633158829585-23ba8f7c8caf?q=80&w=800&auto=format&fit=crop" className="h-28 w-full object-cover" />
-              <div className="bg-black/60 text-white text-xs p-2">GoPay 50K (0%)</div>
-            </div>
-          </div>
+        <div className="hidden md:block w-40">
+          <PrizeShowcase />
         </div>
 
-        {/* Machine */}
         <div className="flex-1">
           <div className="relative rounded-3xl p-6 sm:p-8 bg-gradient-to-br from-red-700 to-red-900 border border-red-300/20 shadow-2xl">
             <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_50%_-10%,rgba(255,255,255,0.25),transparent_40%)]" />
             <div className="relative">
               <div className="flex items-center justify-center gap-3 sm:gap-4">
-                {columns.map((s, i) => (
-                  <div
-                    key={i}
-                    className={`flex-1 h-28 sm:h-36 md:h-44 rounded-2xl bg-gradient-to-b from-red-800 to-red-950 border border-red-300/20 flex items-center justify-center text-5xl sm:text-6xl md:text-7xl text-yellow-200 ${bgGlow}`}
-                  >
-                    <span className="drop-shadow-[0_0_10px_rgba(255,220,100,0.5)]">{s.label}</span>
-                  </div>
-                ))}
+                <Reel targetId={targets[0]} delay={0} spinKey={spinKey} height={112} />
+                <Reel targetId={targets[1]} delay={1} spinKey={spinKey} height={112} />
+                <Reel targetId={targets[2]} delay={2} spinKey={spinKey} height={112} />
               </div>
 
               <div className="mt-6 flex items-center justify-center">
                 <button
                   onClick={spin}
                   disabled={spinning}
-                  className="relative inline-flex items-center justify-center px-8 py-3 rounded-full bg-yellow-400 text-red-900 font-extrabold text-lg sm:text-xl tracking-wide transition-transform duration-200 disabled:opacity-60 disabled:cursor-not-allowed active:scale-95"
+                  className={`relative inline-flex items-center justify-center px-8 py-3 rounded-full bg-yellow-400 text-red-900 font-extrabold text-lg sm:text-xl tracking-wide transition-transform duration-200 disabled:opacity-60 disabled:cursor-not-allowed active:scale-95 ${bgGlow}`}
                 >
                   <span className="absolute inset-0 rounded-full bg-white/50 blur-sm"></span>
                   <span className="relative">SPIN</span>
                 </button>
               </div>
-
-              {message && (
-                <div className="mt-6 text-center text-white text-lg font-semibold">
-                  {message}
-                </div>
-              )}
             </div>
-          </div>
-
-          <div className="mt-4 text-center text-red-100 text-sm">
-            Hadiah tersedia: Laptop, GoPay 50.000, GoPay 10.000, Permen, dan Zonk. Laptop & GoPay 50K tidak bisa dimenangkan.
           </div>
         </div>
 
-        {/* Right prizes */}
-        <div className="hidden md:block">
-          <div className="grid grid-cols-1 gap-4 w-40">
-            <div className="rounded-xl overflow-hidden border border-white/10">
-              <img src="https://images.unsplash.com/photo-1760764541302-e3955fbc6b2b?ixid=M3w3OTkxMTl8MHwxfHNlYXJjaHwxfHxjZXJhbWljJTIwcG90dGVyeSUyMGhhbmRtYWRlfGVufDB8MHx8fDE3NjM0MTE5NzJ8MA&ixlib=rb-4.1.0&w=1600&auto=format&fit=crop&q=80" className="h-28 w-full object-cover" />
-              <div className="bg-black/60 text-white text-xs p-2">GoPay 10K (0.5%)</div>
-            </div>
-            <div className="rounded-xl overflow-hidden border border-white/10">
-              <img src="https://images.unsplash.com/photo-1501973801540-537f08ccae7b?q=80&w=800&auto=format&fit=crop" className="h-28 w-full object-cover" />
-              <div className="bg-black/60 text-white text-xs p-2">Permen (20%)</div>
-            </div>
-            <div className="rounded-xl overflow-hidden border border-white/10">
-              <img src="https://images.unsplash.com/photo-1760764541302-e3955fbc6b2b?ixid=M3w3OTkxMTl8MHwxfHNlYXJjaHwxfHxjZXJhbWljJTIwcG90dGVyeSUyMGhhbmRtYWRlfGVufDB8MHx8fDE3NjM0MTE5NzJ8MA&ixlib=rb-4.1.0&w=1600&auto=format&fit=crop&q=80" className="h-28 w-full object-cover" />
-              <div className="bg-black/60 text-white text-xs p-2">Zonk (79.5%)</div>
-            </div>
-          </div>
+        <div className="hidden md:block w-40">
+          <PrizeShowcase />
         </div>
       </div>
+
+      {/* Result Popup */}
+      {showPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm opacity-100 transition-opacity" onClick={() => setShowPopup(false)} />
+          <div className="relative bg-white/95 text-red-900 rounded-2xl px-6 py-5 shadow-2xl border border-red-300/40 scale-100 opacity-100 transition-all duration-300">
+            <div className="absolute -inset-1 rounded-2xl bg-gradient-to-br from-yellow-300/20 to-red-500/10 blur-xl" aria-hidden />
+            <div className="relative text-center">
+              <div className="text-2xl sm:text-3xl font-extrabold mb-2">{resultMsg}</div>
+              <button
+                onClick={() => setShowPopup(false)}
+                className="mt-2 inline-flex items-center justify-center px-4 py-2 rounded-full bg-red-700 text-white font-semibold hover:bg-red-800 transition-colors"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
