@@ -18,6 +18,17 @@ function decideResult() {
   return 'zonk'
 }
 
+function labelFor(id){
+  const map = {
+    laptop: 'Laptop',
+    gopay50: 'E-Money 50.000',
+    gopay10: 'E-Money 10.000',
+    candy: 'Permen',
+    zonk: 'Zonk'
+  }
+  return map[id] || id
+}
+
 function Reel({ targetId, delay, spinKey, height = 112 }) {
   // height ~ item box height in px (responsive-ish via Tailwind sizes)
   const [pos, setPos] = useState(0) // integer item index
@@ -86,6 +97,7 @@ export default function SlotMachine() {
   const [spinKey, setSpinKey] = useState(0)
   const [targets, setTargets] = useState(['candy', 'zonk', 'gopay10'])
   const [resultMsg, setResultMsg] = useState('')
+  const [resultDetail, setResultDetail] = useState('')
   const [showPopup, setShowPopup] = useState(false)
 
   const targetRef = useRef(['zonk', 'zonk', 'zonk'])
@@ -95,6 +107,7 @@ export default function SlotMachine() {
     setSpinning(true)
     setShowPopup(false)
     setResultMsg('')
+    setResultDetail('')
 
     const outcome = decideResult()
     const target = outcome === 'zonk' ? ['zonk', 'candy', 'zonk'] : [outcome, outcome, outcome]
@@ -107,7 +120,13 @@ export default function SlotMachine() {
     const totalDuration = 1600 + 2 * 400 + 200 // must exceed last reel
     setTimeout(() => {
       const isWin = target.every((v) => v === target[0]) && target[0] !== 'zonk'
-      setResultMsg(isWin ? 'Hoki juga lu, selamat ya.' : "You're a loser")
+      if (isWin) {
+        setResultMsg('Hoki juga lu, selamat ya.')
+        setResultDetail(`Kamu menang: ${labelFor(target[0])}`)
+      } else {
+        setResultMsg("You're a loser")
+        setResultDetail('Coba lagi, siapa tau hoki berikutnya.')
+      }
       setShowPopup(true)
       setSpinning(false)
     }, totalDuration)
@@ -144,6 +163,11 @@ export default function SlotMachine() {
               </div>
             </div>
           </div>
+
+          {/* footer credit */}
+          <div className="mt-3 text-xs text-red-100/70">
+            deploy by ; Aldrien for TekFor 2
+          </div>
         </div>
 
         <div className="hidden md:block w-40">
@@ -159,6 +183,7 @@ export default function SlotMachine() {
             <div className="absolute -inset-1 rounded-2xl bg-gradient-to-br from-yellow-300/20 to-red-500/10 blur-xl" aria-hidden />
             <div className="relative text-center">
               <div className="text-2xl sm:text-3xl font-extrabold mb-2">{resultMsg}</div>
+              {resultDetail && <div className="mb-3 text-sm sm:text-base font-semibold">{resultDetail}</div>}
               <button
                 onClick={() => setShowPopup(false)}
                 className="mt-2 inline-flex items-center justify-center px-4 py-2 rounded-full bg-red-700 text-white font-semibold hover:bg-red-800 transition-colors"
