@@ -55,8 +55,11 @@ function Reel({ targetId, delay, spinKey, height = 112 }) {
     const baseSpins = 8 + Math.floor(Math.random() * 5) // 8-12 full cycles
     const newPos = pos + baseSpins * baseLen + (targetIndex >= 0 ? targetIndex : baseLen - 1)
 
-    const duration = 1600 + delay * 400 // staggered stops
+    // Staggered stops but max duration = 3000ms
+    // delay: 0 -> 2600ms, 1 -> 2800ms, 2 -> 3000ms
+    const duration = 2600 + delay * 200
     setAnim(`transform ${duration}ms cubic-bezier(0.17, 0.84, 0.44, 1)`)
+
     // set to large translate then normalize at end
     requestAnimationFrame(() => {
       setPos(newPos)
@@ -66,7 +69,7 @@ function Reel({ targetId, delay, spinKey, height = 112 }) {
       setAnim('')
       // normalize to keep number small
       setPos((p) => p % baseLen)
-    }, duration + 50)
+    }, duration + 60)
 
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -117,7 +120,8 @@ export default function SlotMachine() {
     // trigger reels
     setSpinKey((k) => k + 1)
 
-    const totalDuration = 1600 + 2 * 400 + 200 // must exceed last reel
+    // Wait until the last reel stops (3000ms) + small buffer
+    const totalDuration = 3000 + 120
     setTimeout(() => {
       const isWin = target.every((v) => v === target[0]) && target[0] !== 'zonk'
       if (isWin) {
